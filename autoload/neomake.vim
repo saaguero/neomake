@@ -33,7 +33,11 @@ endfunction
 
 function! neomake#CancelJob(job_id) abort
     if has_key(s:jobs, a:job_id)
-        call job_stop(s:jobs[a:job_id].job, "kill")
+        if has('nvim')
+            call jobstop(a:job_id)
+        else
+            call job_stop(s:jobs[a:job_id].job)
+        endif
         return 1
     endif
     return 0
