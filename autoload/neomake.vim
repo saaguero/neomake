@@ -769,7 +769,6 @@ function! neomake#MakeHandler(job_id, data, event_type) abort
         endif
     elseif a:event_type ==# 'exit'
         " Handle any unfinished lines from stdout/stderr callbacks.
-        " This seems to be unnecessary for Vim.
         if has_key(jobinfo, 'lines')
             if len(jobinfo.lines) && jobinfo.lines[-1] ==# ''
                 call remove(jobinfo.lines, -1)
