@@ -76,16 +76,6 @@ function! s:AddJobinfoForCurrentWin(job_id) abort
     endif
 endfunction
 
-function! s:ExpandArguments(index, arg)
-    if neomake#utils#IsRunningWindows()
-        " Don't expand &shellcmdflag argument of cmd.exe nor arguments like '"something"'
-        if a:arg ==? &shellcmdflag || a:arg =~ '.*".*".*'
-            return a:arg
-        endif
-    endif
-    return expand(a:arg)
-endfunction
-
 function! s:MakeJob(make_id, maker) abort
     let job_id = s:job_id
     let s:job_id += 1
@@ -117,7 +107,12 @@ function! s:MakeJob(make_id, maker) abort
     endif
 
     call neomake#utils#DebugMessage('Arguments before expansion: '. string(args))
-    call map(args, function('s:ExpandArguments'))
+    if neomake#utils#IsRunningWindows()
+        " Don't expand &shellcmdflag argument of cmd.exe nor arguments like '"something"'
+        call map(args, "(v:val ==? &shellcmdflag || v:val =~ '.*\".*\".*') ? v:val : expand(v:val)")
+    else
+        call map(args, 'expand(v:val)')
+    endif
     call neomake#utils#DebugMessage('Arguments after expansion: '. string(args))
 
     if has_key(a:maker, 'cwd')
