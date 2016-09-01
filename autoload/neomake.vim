@@ -76,6 +76,16 @@ function! s:AddJobinfoForCurrentWin(job_id) abort
     endif
 endfunction
 
+function! s:ExpandArguments(index, arg)
+    if neomake#utils#IsRunningWindows()
+        " Don't expand &shellcmdflag argument of cmd.exe nor arguments like '"something"'
+        if a:arg ==? &shellcmdflag || a:arg =~ '.*".*".*'
+            return a:arg
+        endif
+    endif
+    return expand(a:arg)
+endfunction
+
 function! s:MakeJob(make_id, maker) abort
     let job_id = s:job_id
     let s:job_id += 1
@@ -106,12 +116,9 @@ function! s:MakeJob(make_id, maker) abort
         call add(args, '%:p')
     endif
 
-    if neomake#utils#IsRunningWindows()
-        " Don't expand &shellcmdflag argument of cmd.exe
-        call map(args, 'v:val !=? &shellcmdflag ? expand(v:val) : v:val')
-    else
-        call map(args, 'expand(v:val)')
-    endif
+    call neomake#utils#DebugMessage('Arguments before expansion: '. string(args))
+    call map(args, function('s:ExpandArguments'))
+    call neomake#utils#DebugMessage('Arguments after expansion: '. string(args))
 
     if has_key(a:maker, 'cwd')
         let old_wd = getcwd()
@@ -156,17 +163,16 @@ function! s:MakeJob(make_id, maker) abort
             else
                 if has_args
                     if neomake#utils#IsRunningWindows()
-                        let program = exe.' '.join(map(args, 'v:val'))
+                        let program = [exe.' '.join(map(args, 'v:val'))]
                     else
-                        let program = exe.' '.join(map(args, 'shellescape(v:val)'))
+                        let program = ['/bin/sh', '-c', exe.' '.join(map(args, 'shellescape(v:val)'))]
                     endif
                 else
-                    let program = exe
+                    let program = [exe]
                 endif
 
-                call neomake#utils#LoudMessage('Starting: ' . program)
-
-                let job = job_start(["/bin/sh", "-c", program], {
+                call neomake#utils#LoudMessage('Running: ' . string(program))
+                let job = job_start(program, {
                             \ 'callback': 'neomake#MakeHandlerVim',
                             \ 'close_cb': 'neomake#MakeHandlerVimClose'
                             \ })
