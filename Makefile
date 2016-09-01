@@ -9,7 +9,9 @@ VIM_ARGS='+$(VADER) *.vader'
 testnvim: TEST_VIM:=VADER_OUTPUT_FILE=/dev/stderr nvim --headless
 testnvim: tests/vader
 testnvim:
-	cd tests && HOME=/dev/null $(TEST_VIM) -nNu vimrc -i NONE $(VIM_ARGS)
+	@# Use a temporary dir with Neovim (https://github.com/neovim/neovim/issues/5277).
+	tmp=$(shell mktemp -d --suffix=.neomaketests); \
+	cd tests && HOME=$$tmp $(TEST_VIM) -nNu vimrc -i NONE $(VIM_ARGS)
 	
 testvim: TEST_VIM:=vim -X
 testvim: tests/vader
